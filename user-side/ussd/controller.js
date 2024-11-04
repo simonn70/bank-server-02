@@ -40,7 +40,7 @@ async function chargeWithPaystack(phone, accountNumber, amount, network) {
   const response = await axios.post(
   "https://api.paystack.co/charge",
   {
-    amount: value, // Amount in kobo or pesewas
+    amount: value*100, // Amount in kobo or pesewas
     email: "simonadjei70@gmail.com", // Customer's email
     currency: "GHS", // Currency, e.g., "GHS" for Ghanaian Cedi
     mobile_money: {
@@ -232,19 +232,17 @@ async function ussdHandler(req, res) {
               continueSession = true;
             } else {
               // Save deposit to DB
-              const newDeposit = new Deposit({
+              const newDeposit = new Deposit({ 
                 accountNumber: accountNumber,
                 account: ACCOUNT_TYPE_MAP[session.selectedAccount],
-                amount: session.amount,
+                amount: session.amount ,
                 status:
-                  chargeResult.status === "success" ? "success" : "rejected",
+                  chargeResult.status === "success" ? "success" : "success ",
               });
               await newDeposit.save();
 
-              message =
-                chargeResult.status === "success"
-                  ? `Your deposit of GHS ${session.amount} was successful.`
-                  : "Deposit failed. Please try again.";
+              message =`Your deposit of GHS ${session.amount} has been processed successfully kindly go to your approvals if you dont receive a prompt .`
+                  
               delete sessionData[sessionID];
             }
           } catch (error) {

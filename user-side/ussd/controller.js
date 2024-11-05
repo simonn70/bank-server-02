@@ -73,6 +73,15 @@ async function chargeWithPaystack(phone, accountNumber, amount, network) {
   }
 }
 
+
+async function updateUserBalance(accountNumber, accountType, amount, isDeposit) {
+  const balanceField = accountType === "shares" ? "sharesBalance" : "savingsBalance";
+  const update = isDeposit ? { $inc: { [balanceField]: amount } } : { $inc: { [balanceField]: -amount } };
+
+  await User.updateOne({ accountNumber }, update);
+}
+
+
 async function checkBalance(accountNumber, selectedAccount) {
   const user = await User.findOne({ accountNumber });
 
@@ -240,6 +249,8 @@ async function ussdHandler(req, res) {
                   chargeResult.status === "success" ? "success" : "success",
               });
               await newDeposit.save();
+              await updateUserBalance(accountNumber, ACCOUNT_TYPE_MAP[session.selectedAccount], session.amount, true);
+
 
               message =`Your deposit of GHS ${session.amount} has been processed successfully kindly go to your approvals if you dont receive a prompt .`
                   

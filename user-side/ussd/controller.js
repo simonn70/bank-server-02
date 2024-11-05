@@ -110,7 +110,7 @@ async function ussdHandler(req, res) {
       message =
         "Welcome to GNTDA Credit Union\nPlease enter your account number:";
       continueSession = true;
-    } else if (userData.length >= 4 && !isNaN(userData)) {
+    } else if ( !isNaN(userData)) {
       const accountNumber = userData;
       const isValidAccount = await verifyAccountNumber(accountNumber);
       if (isValidAccount) {

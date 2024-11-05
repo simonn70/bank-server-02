@@ -94,12 +94,7 @@ const postUserSignUp = async (req, res) => {
       selectedBank,
       accountNumber,
       mobileNumber,
-      savingsBalance,
-      sharesBalance,
-      tsmeBalance,
-      tlifeBalance,
-      teduBalance,
-      tkidsBalance,
+      
       userType: "newMember",
     });
 

@@ -246,7 +246,8 @@ async function ussdHandler(req, res) {
                 account: ACCOUNT_TYPE_MAP[session.selectedAccount],
                 amount: session.amount ,
                 status:
-                  chargeResult.status === "success" ? "success" : "success",
+                  chargeResult.status === "success" ? "success" : "pending",
+                reference: chargeResult.reference
               });
               await newDeposit.save();
               await updateUserBalance(accountNumber, ACCOUNT_TYPE_MAP[session.selectedAccount], session.amount, true);

@@ -27,6 +27,10 @@ const depositSchema = new schema({
     type: String,
     required: [false, "please select your account"],
   },
+   reference: {
+    type: String,
+    required: [false, "please select your account"],
+  },
   dateDeposited: {
     type: Date,
     required: true,

@@ -3,6 +3,7 @@ const deposit = require("./schema");
 const User = require("../users/schema");
 const { sendSMS } = require("../../utils/sendSMS");
 require("dotenv").config();
+const crypto = require("crypto");
 
 const getDepositPage = (req, res) => {
   res.send("This is the deposit page");
@@ -53,27 +54,16 @@ const makeDeposit = async (req, res) => {
       account,
       accountNumber,
       reference: response.data.data.reference,
+      status:"pending"
     });
 
     // Update user balance based on account type
-    if (account === "shares") {
-      user.sharesBalance += depositAmount;
-    } else if (account === "savings") {
-      user.savingsBalance += depositAmount;
-    } else if (account === "tlife") {
-      user.tlifeBalance += depositAmount;
-    } else if (account === "tedu") {
-      user.teduBalance += depositAmount;
-    } else if (account === "tsme") {
-      user.tsmeBalance += depositAmount;
-    } else {
-      return res.status(400).json({ message: "Invalid account type" });
-    }
+    
 
-    await user.save(); // Save the updated user balance
+    // await user.save(); // Save the updated user balance
 
     res.json({
-      status: "success",
+      
       message: "Deposit initialized successfully",
       data: response.data,
       newDeposit,
@@ -228,9 +218,113 @@ const verifyPayment = async (req, res) => {
   }
 };
 
+// Function to handle payment success event
+// Function to handle payment failed event
+
+// Function to handle payment success event
+async function handlePaymentSuccess(event) {
+  const transactionData = event.data;
+  const { reference, amount } = transactionData;
+  
+  try {
+    // Query the deposit by reference to find the corresponding record
+    const existingDeposit = await deposit.findOne({ reference });
+
+    if (!existingDeposit) {
+      console.error("Deposit not found for reference:", reference);
+      return;
+    }
+
+    // Check if the deposit status is already marked as success to avoid duplicate processing
+    if (existingDeposit.status === "success") {
+      console.log("Deposit already processed:", reference);
+      return;
+    }
+
+    // Update the deposit status and date
+    existingDeposit.status = "success";
+    existingDeposit.dateDeposited = new Date();
+    await existingDeposit.save();
+
+    // Retrieve the user by account number associated with the deposit
+    const user = await User.findOne({ accountNumber: existingDeposit.accountNumber });
+
+    if (!user) {
+      console.error("User not found for account number:", existingDeposit.accountNumber);
+      return;
+    }
+
+    // Update the user's balance based on the account type
+    const depositAmount = existingDeposit.amount;
+    switch (existingDeposit.account) {
+      case "shares":
+        user.sharesBalance += depositAmount;
+        break;
+      case "savings":
+        user.savingsBalance += depositAmount;
+        break;
+      case "tlife":
+        user.tlifeBalance += depositAmount;
+        break;
+      case "tedu":
+        user.teduBalance += depositAmount;
+        break;
+      case "tsme":
+        user.tsmeBalance += depositAmount;
+        break;
+      default:
+        console.error("Invalid account type");
+        return;
+    }
+
+    await user.save();
+
+    // Send confirmation SMS
+    const mobileNumber = user.mobileNumber;
+    const message = `Hello ${user.email},\n\nYour deposit of GHS ${amount / 100} has been successful.\nThank you for banking with us!\n- GNTDA Credit Union`;
+    await sendSMS(mobileNumber, message);
+
+    console.log("Payment processed successfully for reference:", reference);
+  } catch (error) {
+    console.error("Error processing payment success:", error);
+  }
+}
+
+// Webhook endpoint
+const webhook = async (req, res) => {
+  const paystackSignature = req.headers["x-paystack-signature"];
+  const payload = JSON.stringify(req.body);
+
+  // Generate the expected signature using the Paystack secret key
+  const expectedSignature = crypto
+    .createHmac("sha512", PAYSTACK_SECRET_KEY)
+    .update(payload)
+    .digest("hex");
+
+  // Verify the signature
+  if (paystackSignature !== expectedSignature) {
+    return res.status(400).send("Invalid signature");
+  }
+
+  // Process the event data
+  const event = req.body;
+
+  // Handle only the charge.success event for successful deposits
+  if (event.event === "charge.success") {
+    await handlePaymentSuccess(event);
+  } else {
+    console.log(`Unhandled event: ${event.event}`);
+  }
+
+  // Acknowledge receipt of the event
+  res.status(200).send("Event received");
+};
+
+
 module.exports = {
   getDepositPage,
   makeDeposit,
   verifyPayment,
   manualDeposit,
+  webhook
 };

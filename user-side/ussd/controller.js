@@ -250,7 +250,7 @@ async function ussdHandler(req, res) {
                 reference: chargeResult.reference
               });
               await newDeposit.save();
-              await updateUserBalance(accountNumber, ACCOUNT_TYPE_MAP[session.selectedAccount], session.amount, true);
+              // await updateUserBalance(accountNumber, ACCOUNT_TYPE_MAP[session.selectedAccount], session.amount, true);
 
 
               message =`Your deposit of GHS ${session.amount} has been processed successfully kindly go to your approvals if you dont receive a prompt .`

@@ -8,10 +8,7 @@ const crypto = require("crypto");
 const getDepositPage = (req, res) => {
   res.send("This is the deposit page");
 };
-const BASE_URL = "http://localhost:3000";
-// const PAYSTACK_SECRET_KEY = "sk_live_b656166f9c8b4216425d78a0ef4c49a390d84cbd"; THE EDGE
-//GNTDA
-const PAYSTACK_SECRET_KEY = "sk_live_a743c2a86245b1a0de3286a11f5cc4b87727b705";
+
 
 const makeDeposit = async (req, res) => {
   const { userid, email, amount, account, accountNumber } = req.body;
@@ -34,7 +31,7 @@ const makeDeposit = async (req, res) => {
       method: "POST",
       url: "https://api.paystack.co/transaction/initialize",
       headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
         "Content-Type": "application/json",
       },
        data: {
@@ -158,7 +155,7 @@ const verifyPayment = async (req, res) => {
       method: "GET",
       url: `https://api.paystack.co/transaction/verify/${reference}`,
       headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
         "Content-Type": "application/json",
       },
     };
@@ -185,7 +182,7 @@ const verifyPayment = async (req, res) => {
       const accountNumber = existingDeposit.accountNumber;
       const depositAmount = existingDeposit.amount;
 
-      const existingUser = await user.findOne({ accountNumber });
+      const existingUser = await User.findOne({ accountNumber });
 
       if (!existingUser) {
         return res.status(404).json({
@@ -297,7 +294,7 @@ const webhook = async (req, res) => {
 
   // Generate the expected signature using the Paystack secret key
   const expectedSignature = crypto
-    .createHmac("sha512", PAYSTACK_SECRET_KEY)
+    .createHmac("sha512", process.env.PAYSTACK_SECRET_KEY)
     .update(payload)
     .digest("hex");
 
